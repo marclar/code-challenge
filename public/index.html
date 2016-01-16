@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bounce Exchange Code Challenge</title>
+    <link rel="stylesheet" href="/semantic.min.css"/>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.0.0/lodash.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script type="text/javascript">
+
+        var QUEUE_TIMEOUT_MS = 15000;
+
+        //Add log shortcut
+        window.log = console.log.bind(console);
+
+        //When the DOM is ready,
+        $(function(){
+
+            //Get DOM references
+            var $body = $('body');
+            var $fetchButton = $('#fetchButton');
+            var $setButton = $('#setButton');
+
+            //Define form interactions
+            function enableFetch(doit){
+                $fetchButton.toggleClass('disabled', !doit);
+                $setButton.toggleClass('disabled', doit);
+            }
+
+            function fetchColor(){
+
+                //Enable / disable buttons
+                enableFetch(false);
+
+                //Get color
+                $.getJSON('/api/colors/fetch').then(function(color){
+
+                    //Update bg color and save this colorId
+                    $body.data({colorId: color.id})
+                            .css({backgroundColor: 'rgb('+color.rgb.join(',')+')'});
+
+                    //Discard color if not set in QUEUE_TIMEOUT_MS
+                    $body.timeout = setTimeout(function(){
+                        enableFetch(true);
+                    }, QUEUE_TIMEOUT_MS);
+
+                }, function(err){
+                    console.error('Error fetching color', err);
+                    enableFetch(true);
+                });
+            }
+
+            function setColor(){
+                enableFetch(true);
+
+                //Get current colorId
+                var colorId = $('body').data('colorId');
+
+                //Submit
+                $.post('/api/colors/set/'+colorId).then(function(){
+                    log('color submitted...');
+                }, function(err){console.error('Error setting color', err);});
+            }
+
+            //Show the form
+            $('.form').css({visibility: 'visible'});
+
+            //Bind click handlers
+            $fetchButton.on('click', fetchColor);
+            $setButton.on('click', setColor);
+
+            //TESTING
+            if(document.location.search.indexOf('autofetch=true') > -1){
+                fetchColor();
+            }
+
+
+        });
+    </script>
+</head>
+<body style="background-color: #000;">
+
+    <div class="ui center aligned container" style="margin-top: 33%; ">
+
+        <div class="ui form" style="visibility: hidden; ">
+
+            <div class="ui buttons">
+                <button id="fetchButton" class="ui massive button">Fetch</button>
+                <button id="setButton" class="ui disabled massive button">Set</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>
